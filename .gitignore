@@ -1,0 +1,12 @@
+# MacOS system files
+.DS_Store
+
+# iPython files
+.ipynb_checkpoints
+graph_drawing.ipynb
+minimax.ipynb
+star-top.ipynb
+Untitled.ipynb
+
+# Other
+__pycache__
