@@ -129,11 +129,11 @@ def construct_two_player_util_mat(G_dict, p_type, util_fun):
     for i_type in enumerate(AgentType):
         G_i = G_dict[i_type]
         U_i = np.zeros((G_p.number_of_edges(), G_i.number_of_edges()))
-        for e_pat in G.edges(data=True):
-            for e_int in G.edges(data=True):
+        for e_pat in G_p.edges(data=True):
+            for e_int in G_i.edges(data=True):
                 p_eid, i_eid = e_pat[-1]['eid'], e_int[-1]['eid']
                 i = p_eid
-                j = i_type * G.number_of_edges() + i_eid
+                j = i_eid
                 U_i[i, j]  = util_fun(e_pat, e_int, p_type, i_type)
         U_blocks.append(U_i)
 
