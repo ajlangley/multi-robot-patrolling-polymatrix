@@ -156,12 +156,11 @@ def construct_star_top_util_mat(G_dict, p_types, util_fun):
         The types of the patrolling agents.
     """
 
-    U_blocks = np.empty((len(p_types), len(AgentType)))
+    U_blocks = []
     for i, p_type in enumerate(p_types):
-        for j, i_type in enumerate(AgentType):
-            U_blocks[i, j] = construct_two_player_util_mat(G_dict, p_type,
-                                                           util_fun)
+        U_blocks.append(construct_two_player_util_mat(G_dict, p_type,
+                                                      util_fun))
 
-    U = np.block([[b for b in r] for r in U_blocks])
+    U = np.vstack(U_blocks)
 
     return U
