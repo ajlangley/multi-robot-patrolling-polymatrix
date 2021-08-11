@@ -7,14 +7,16 @@ from .utility  import PvIUtilFun, construct_star_top_util_mat
 from .simulation import simulate_star_top_patrolling
 from .solvers import compute_ne_star_top, compute_minimax_strategies, make_stable
 
-def run_benchmarks(graphs, p_types, p_intruder=0.3, n_sim=100, T=20):
+def run_benchmarks(G_dicts, p_types, p_intruder=0.3, n_sim=100, T=20):
     """
     Use run_benchmark on several graphs to collect simulation data.
 
     Parameters
     ----------
-    graphs : list of networkx.digraph.DiGraph
-        The graphs on which to run the benchmarks.
+    G_dicts : list of dict of networkx.digraph.DiGraph
+        A list of dictionaries of graphs with <enum 'AgentType'> as keys and the
+        graph represtations of the environment for the corresponding agent types
+        as values. Each element in the list corresponds to an experiment.
     p_types : list of <enum 'AgentType'>
         The agent types of the patrollers.
     p_intruder : float
@@ -58,7 +60,7 @@ def run_benchmarks(graphs, p_types, p_intruder=0.3, n_sim=100, T=20):
 
     return poly_simulations, minimax_simulations, rand_simulations
 
-def run_benchmark(G, p_types, p_intruder=0.3, n_sim=100, T=20):
+def run_benchmark(G_dict, p_types, p_intruder=0.3, n_sim=100, T=20):
     """
     Collect simulation data using three solution concepts:
         1. Star topology patrolling game with polymatrix solver.
@@ -233,7 +235,8 @@ def draw_grouped_bar_chart(ax, *data, bar_width=0.5, group_padding=0.3, group_la
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
 
-def optimize_intruder_response(U_star, x_list, G, use_movement_constraints=True, **solver_args):
+def optimize_intruder_response(U_star, x_list, G, use_movement_constraints=True,
+                               **solver_args):
     U = np.vstack(U_star)
     y_joint = cp.Variable(U.shape[1])
     constraints = [(cp.sum(y_joint) == 1), (y_joint >= 0)]

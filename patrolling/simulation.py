@@ -2,8 +2,9 @@ import numpy as np
 
 from .agents import AgentType
 
-def simulate_star_top_patrolling(x_list, y, G, vis_graphs, p_types, intruder_type_dist,
-                                 p_intruder, n_simulations, T):
+def simulate_star_top_patrolling(x_list, y, G_dict, vis_graphs, p_types,
+                                 intruder_type_dist, p_intruder, n_simulations,
+                                 T):
     """
     Parameters
     ----------
@@ -18,8 +19,10 @@ def simulate_star_top_patrolling(x_list, y, G, vis_graphs, p_types, intruder_typ
         valid probability distributions over the edges in G.
     y : list of np.ndarray
         A list of intruder strategies, one for each type in the AgentType enum.
-    G : networkx.digraph.DiGraph
-        The graph representation of the environment.
+    G_dict : dict of networkx.digraph.DiGraph
+        A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+        represtations of the environment for the corresponding agent types as
+        values.
     vis_graphs : dict of networkx.digraph.DiGraph
         A dictionary of graphs where the keys are types from AgentType and the
         values are graphs. Each graph specifies the vertices that are visible
@@ -63,7 +66,8 @@ def simulate_star_top_patrolling(x_list, y, G, vis_graphs, p_types, intruder_typ
             print(f'[{n + 1}/{n_simulations}][{t + 1}/{T}]', end='\r')
             r = np.random.uniform(0, 1)
             if r <= p_intruder:
-                new_intruder_type = AgentType(np.random.choice(AgentType, p=intruder_type_dist))
+                new_intruder_type = AgentType(np.random.choice(AgentType,
+                                                               p=intruder_type_dist))
                 new_intruder = {'type': new_intruder_type,
                                 'spawn_time': t,
                                 'detection_time': None,
@@ -72,13 +76,13 @@ def simulate_star_top_patrolling(x_list, y, G, vis_graphs, p_types, intruder_typ
 
             for i, patroller in enumerate(patrollers):
                 v_old = patroller['history'][-1] if len(patroller['history']) else None
-                v_new = get_next_pos(x_list[i], G, v=v_old)
+                v_new = get_next_pos(x_list[i], G_dict[patroller['type']], v=v_old)
                 patroller['history'].append(v_new)
                 patroller['is_detected'].append(False)
             for intruder in intruders:
                 if intruder['detection_time'] is None:
                     v_old = intruder['history'][-1] if len(intruder['history']) else None
-                    v_new = get_next_pos(y[intruder['type']], G, v=v_old)
+                    v_new = get_next_pos(y[intruder['type']], G_dict[intruder['type']], v=v_old)
                     intruder['history'].append(v_new)
                 else:
                     intruder['history'].append(None)
@@ -125,7 +129,7 @@ def get_next_pos(x, G, v=None):
     v_new : object
         The agents next vertex in G
     """
-    
+
     out_edges = list(G.out_edges(v, data=True))
     out_eids = [e[-1]['eid'] for e in out_edges]
     move_probs = x[out_eids]

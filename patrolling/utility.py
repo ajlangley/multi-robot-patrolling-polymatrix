@@ -101,14 +101,16 @@ class PvIUtilFun:
 
         return u
 
-def construct_two_player_util_mat(G, p_type, util_fun):
+def construct_two_player_util_mat(G_dict, p_type, util_fun):
     """
         Constructs a utility matrix for a two player patrolling game.
 
         Parameters
         ----------
-        G : networkx.digraph.DiGraph
-            The graph on which patrolling is done.
+        G_dict : dict of networkx.digraph.DiGraph
+            A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+            represtations of the environment for the corresponding agent types as
+            values.
         p_type : <enum 'AgentType'>
             The type of the patroller agent.
         util_fun : callable
@@ -122,42 +124,44 @@ def construct_two_player_util_mat(G, p_type, util_fun):
             A |E| X |E|*|AgentType| utility matrix
     """
 
-    U = np.zeros((G.number_of_edges(), G.number_of_edges() * len(AgentType)))
-
-    for i_type in AgentType:
+    U_blocks = []
+    G_p = G_dict[p_type]
+    for i_type in enumerate(AgentType):
+        G_i = G_dict[i_type]
+        U_i = np.zeros((G_p.number_of_edges(), G_i.number_of_edges()))
         for e_pat in G.edges(data=True):
             for e_int in G.edges(data=True):
                 p_eid, i_eid = e_pat[-1]['eid'], e_int[-1]['eid']
                 i = p_eid
                 j = i_type * G.number_of_edges() + i_eid
-                U[i, j]  = util_fun(e_pat, e_int, p_type, i_type)
+                U_i[i, j]  = util_fun(e_pat, e_int, p_type, i_type)
+        U_blocks.append(U_i)
+
+    U = np.hstack(U_blocks)
 
     return U
 
-def construct_star_top_util_mat(G, p_types, util_fun):
+def construct_star_top_util_mat(G_dict, p_types, util_fun):
     """
     Constructs a utility matrix for a patrolling game played with a single
     intruder and an arbitrary number of patrollers.
 
     Parameters
     ----------
-    G : networkx.digraph.DiGraph
-        The graph on which patrolling is done.
+    G_dict : dict of networkx.digraph.DiGraph
+        A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+        represtations of the environment for the corresponding agent types as
+        values.
     p_types : list of <enum 'AgentType'>
         The types of the patrolling agents.
     """
 
-    U = np.zeros((len(p_types),
-                  G.number_of_edges(),
-                  G.number_of_edges() * len(AgentType)))
-
+    U_blocks = np.empty((len(p_types), len(AgentType)))
     for i, p_type in enumerate(p_types):
-        for i_type in AgentType:
-            for e_pat in G.edges(data=True):
-                for e_int in G.edges(data=True):
-                    p_eid, i_eid = e_pat[-1]['eid'], e_int[-1]['eid']
-                    j = p_eid
-                    k = i_type * G.number_of_edges() + i_eid
-                    U[i, j, k] = util_fun(e_pat, e_int, p_type, i_type)
+        for j, i_type in enumerate(AgentType):
+            U_blocks[i, j] = construct_two_player_util_mat(G_dict, p_type,
+                                                           util_fun)
+
+    U = np.block([[b for b in r] for r in U_blocks])
 
     return U

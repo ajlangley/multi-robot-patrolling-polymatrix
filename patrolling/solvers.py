@@ -3,7 +3,7 @@ import numpy as np
 
 from .agents import AgentType
 
-def compute_two_player_minimax(U, G, use_movement_constraints=True,
+def compute_two_player_minimax(U, G_dict, p_type, use_movement_constraints=True,
                                **solver_args):
     """
     Computes the minimax strategy profile for a patrolling game played between
@@ -13,8 +13,12 @@ def compute_two_player_minimax(U, G, use_movement_constraints=True,
     ----------
     U : numpy.ndarray
         The utility matrix.
-    G : networkx.digraph.DiGraph
-        The graph representation of the environment
+    G_dict : dict of networkx.digraph.DiGraph
+        A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+        represtations of the environment for the corresponding agent types as
+        values.
+    p_type : <enum 'AgentType'>
+        The patroller's agent type.
     use_movement_constraints : bool
         Whether to enforce the constraint on the computed policies that the
         probability of entering a node is consistent with the probability of
@@ -40,6 +44,7 @@ def compute_two_player_minimax(U, G, use_movement_constraints=True,
     pat_constraints = [(cp.sum(x_var) == 1), (x_var >= 0), (z <= x_var @ U)]
 
     if use_movement_constraints:
+        G = G_dict[p_type]
         for v in G.nodes:
             incoming_edges = G.in_edges(v, data=True)
             outgoing_edges = G.out_edges(v, data=True)
@@ -59,17 +64,19 @@ def compute_two_player_minimax(U, G, use_movement_constraints=True,
     y_vars = []
 
     for agent_type in AgentType:
+        G = G_dict[agent_type]
         i = agent_type * G.number_of_edges()
         j = i + G.number_of_edges()
-        y_vars.append(y_joint[i:j])
+        y_var = y_joint[i:j]
+        y_vars.append(y_var)
         if use_movement_constraints:
             for v in G.nodes:
                 incoming_edges = G.in_edges(v, data=True)
                 outgoing_edges = G.out_edges(v, data=True)
                 in_eids = [e[-1]['eid'] for e in incoming_edges]
                 out_eids = [e[-1]['eid'] for e in outgoing_edges]
-                in_sum = cp.sum(y_vars[-1][in_eids])
-                out_sum = cp.sum(y_vars[-1][out_eids])
+                in_sum = cp.sum(y_var[in_eids])
+                out_sum = cp.sum(y_var[out_eids])
                 int_constraints.append((in_sum == out_sum))
 
     int_obj = cp.Minimize(w)
@@ -82,7 +89,8 @@ def compute_two_player_minimax(U, G, use_movement_constraints=True,
 
     return x, y_list, p
 
-def compute_ne_star_top(U_star, G, use_movement_constraints=True, **solver_args):
+def compute_ne_star_top(U_star, G_dict, p_types, use_movement_constraints=True,
+                        **solver_args):
     """
     Compute an equilibrium strategy profile for a patrolling game played between
     one intruder and an arbitrary number of patrollers.
@@ -91,8 +99,12 @@ def compute_ne_star_top(U_star, G, use_movement_constraints=True, **solver_args)
     ----------
     U_star : list of numpy.ndarray
         A list of utility matrices, one for each patroller.
-    G : networkx.digraph.DiGraph
-        The graph representation of the environment
+    G_dict : dict of networkx.digraph.DiGraph
+        A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+        represtations of the environment for the corresponding agent types as
+        values.
+    p_types : list of <enum 'AgentType'>
+        A list of patroller agent types. One for each patroller on the team.
     use_movement_constraints : bool
         Whether to enforce the constraint on the computed policies that the
         probability of entering a node is consistent with the probability of
@@ -110,8 +122,8 @@ def compute_ne_star_top(U_star, G, use_movement_constraints=True, **solver_args)
             The list of  equilibrium intruder strategies, one for each robot
             type as specified in the AgentType enum.
         p : np.ndarray
-            The equilibrium probability distribution over the robot types specified
-            in the AgentType enum for the intruder.
+            The equilibrium probability distribution over the agent types
+            specified in the AgentType enum for the intruder.
     """
 
     U = np.vstack(U_star)
@@ -132,25 +144,31 @@ def compute_ne_star_top(U_star, G, use_movement_constraints=True, **solver_args)
         i = j
 
     for i in AgentType:
+        G = G_dict[i]
         j = i * G.number_of_edges()
         k = j + G.number_of_edges()
         y_vars.append(y_joint[j:k])
 
     if use_movement_constraints:
-        for v in G.nodes:
-            incoming_edges = G.in_edges(v, data=True)
-            outgoing_edges = G.out_edges(v, data=True)
-            in_eids = [e[-1]['eid'] for e in incoming_edges]
-            out_eids = [e[-1]['eid'] for e in outgoing_edges]
-            for x_var in x_vars:
+        for x_var, agent_type in zip(x_vars, p_types):
+            G = G_dict[agent_type]
+            for v in G.nodes:
+                incoming_edges = G.in_edges(v, data=True)
+                outgoing_edges = G.out_edges(v, data=True)
+                in_eids = [e[[1]]['eid'] for e in incoming_edges]
+                out_eids = [e[-1]['eid'] for e in outgoing_edges]
                 in_sum = cp.sum(x_var[in_eids])
                 out_sum = cp.sum(x_var[out_eids])
                 constraints.append((in_sum == out_sum))
-            for i in AgentType:
-                j = i * G.number_of_edges()
-                k = j + G.number_of_edges()
-                in_sum = cp.sum(y_joint[j:k][in_eids])
-                out_sum = cp.sum(y_joint[j:k][out_eids])
+        for y_var, agent_type in zip(y_vars, AgentType):
+            G = G_dict[agent_type]
+            for v in G.nodes:
+                incoming_edges = G.in_edges(v, data=True)
+                outgoing_edges = G.out_edges(v, data=True)
+                in_eids = [e[[1]]['eid'] for e in incoming_edges]
+                out_eids = [e[-1]['eid'] for e in outgoing_edges]
+                in_sum = cp.sum(y_var[in_eids])
+                out_sum = cp.sum(y_var[out_eids])
                 constraints.append((in_sum == out_sum))
 
     constraints += [(y_joint >= 0), (cp.sum(y_joint) == 1), (x_cat >= 0)] \
@@ -167,7 +185,7 @@ def compute_ne_star_top(U_star, G, use_movement_constraints=True, **solver_args)
 
     return x_list, y_list, p
 
-def compute_minimax_star_top(U_star, G, use_movement_constraints=True,
+def compute_minimax_star_top(U_star, G_dict, p_types, use_movement_constraints=True,
                              **solver_args):
     """
     Computes the minimax strategy for each player in a patrolling game where
@@ -177,8 +195,12 @@ def compute_minimax_star_top(U_star, G, use_movement_constraints=True,
     ----------
     U_star : list of numpy.ndarray
         A list of utility matrices, one for each patroller.
-    G : networkx.digraph.DiGraph
-        The graph representation of the environment
+    G_dict : dict of networkx.digraph.DiGraph
+        A dictionary of graphs with <enum 'AgentType'> as keys and the graph
+        represtations of the environment for the corresponding agent types as
+        values.
+    p_types : list of <enum 'AgentType'>
+        A list of patroller agent types. One for each patroller on the team.
     use_movement_constraints : bool
         Whether to enforce the constraint on the computed policies that the
         probability of entering a node is consistent with the probability of
@@ -201,12 +223,12 @@ def compute_minimax_star_top(U_star, G, use_movement_constraints=True,
 
     x_list = []
 
-    for U in U_star:
-        x, _, _ = compute_two_player_minimax(U, G, **solver_args,
+    for U, p_type in zip(U_star, p_types):
+        x, _, _ = compute_two_player_minimax(U, G_dict, p_type, **solver_args,
                                              use_movement_constraints=use_movement_constraints)
         x_list.append(x)
 
-    _, y_list, p = compute_ne_star_top(U_star, G, **solver_args,
+    _, y_list, p = compute_ne_star_top(U_star, G_dict, p_types, **solver_args,
                                        use_movement_constraints=use_movement_constraints)
 
     return x_list, y_list, p
