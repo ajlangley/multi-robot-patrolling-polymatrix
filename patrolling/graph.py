@@ -62,24 +62,6 @@ def generate_random_grid_with_holes(m, n, p, seed=105):
 
     return G
 
-# def load_nx_digraph_from_json(node_fp, edge_fp):
-#     with open(node_fp, 'r') as f_node:
-#         nodes = json.load(f_node)
-#         nodes = [tuple(v) for v in nodes]
-#     with open(edge_fp, 'r') as f_edge:
-#         edges = json.load(f_edge)
-#         edges = [(tuple(e[0]), tuple(e[1])) for e in edges]
-#
-#     G = nx.Graph()
-#     G.add_nodes_from(nodes)
-#     G.add_edges_from(edges)
-#     G_digraph = nx.digraph.DiGraph(G)
-#
-#     for i, e in enumerate(G_digraph.edges()):
-#         G_digraph.add_edge(*e, eid=i)
-#
-#     return G_digraph
-
 def generate_gridworld_vis_graph(G, sensor_range):
     """
     Given a sensor range, compute the visibility graph given the environment
@@ -97,7 +79,7 @@ def generate_gridworld_vis_graph(G, sensor_range):
         The visibility graph. An edge from v1 to v2 means that v2 is visible
         from v2.
     """
-    
+
     m = np.max([v[1] for v in G.nodes])
     n = np.max([v[0] for v in G.nodes])
     G_vis = nx.digraph.DiGraph()
@@ -114,3 +96,15 @@ def generate_gridworld_vis_graph(G, sensor_range):
                                 G_vis.add_edge(v1, v2)
 
     return G_vis
+
+def load_graph_from_npz(graph_fp):
+    graph_archive = np.load(graph_fp)
+    nodes = [tuple(v) for v in graph_archive['nodes']]
+    edges = [(tuple(source), tuple(dest)) for source, dest in graph_archive['edges']]
+
+    G = nx.Graph()
+    G.add_nodes_from(nodes)
+    for i, e in enumerate(edges):
+        G.add_edge(*e, eid=i)
+
+    return G
