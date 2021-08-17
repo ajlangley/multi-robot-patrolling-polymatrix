@@ -105,6 +105,52 @@ def load_graph_from_npz(graph_fp):
     G = nx.Graph()
     G.add_nodes_from(nodes)
     for i, e in enumerate(edges):
-        G.add_edge(*e, eid=i)
+        source, dest = e
+        length = np.linalg.norm(np.array(source) - np.array(dest), 2)
+        G.add_edge(*e, eid=i, length=length)
 
-    return G
+    G_directed = nx.digraph.DiGraph(G)
+
+    return G_directed
+
+def shift_scale_graph(G, origin, res):
+    G_new = nx.digraph.DiGraph()
+    old_to_new = dict()
+
+    for v in G.nodes:
+        x_new = (v[0] - origin[1]) / res
+        y_new = (v[1] - origin[0]) / res
+        v_new = (x_new, y_new)
+        G_new.add_node(v_new)
+        old_to_new[v] = v_new
+
+    for e in G.edges(data=True):
+        e_new = (old_to_new[e[0]], old_to_new[e[1]])
+        G_new.add_edge(old_to_new[e[0]], old_to_new[e[1]], eid=e[-1]['eid'],
+                       length=e[-1]['length'])
+
+    return G_new
+
+def build_graph_with_speed(G, mov_budget):
+    eid = 0
+    G_ws = nx.digraph.DiGraph()
+    for v1 in G.nodes:
+        distances, _ = nx.algorithms.shortest_paths.weighted.single_source_dijkstra(G, v1,
+                                                                                    weight='length',
+                                                                                    cutoff=mov_budget)
+        for v2 in distances.keys():
+            length = np.linalg.norm(np.array(v1) - np.array(v2), 2)
+            G_ws.add_edge(v1, v2, eid=eid, length=length)
+            eid += 1
+
+    return G_ws
+
+def build_vis_graph(G, vis_pairs):
+    nodes = list(G.nodes)
+    vis_graph = nx.digraph.DiGraph()
+    for vis_pair in vis_pairs:
+        v1 = nodes[vis_pair[0]]
+        v2 = nodes[vis_pair[1]]
+        vis_graph.add_edge(v1, v2)
+
+    return vis_graph
