@@ -34,7 +34,7 @@ class PvIUtilFun:
 
     def __init__(self, vis_graphs, occ_utils, util_struct):
         """
-        pairwise_vis : dict of dict
+        pairwise_vis : dict of dict or nx.Graph
             A dictionary which specifies the vertices that are visible to an
             agent type from each vertex. The top level dict contains keys of
             type <enum 'AgentType'>, the values of which are dictionaries
@@ -74,8 +74,8 @@ class PvIUtilFun:
         """
 
         p_term, i_term = e_p[1], e_i[1]
-        p_detected = p_term in self.vis_graphs[i_type].neighbors(i_term)
-        i_detected = i_term in self.vis_graphs[p_type].neighbors(p_term)
+        p_detected = p_term in self.vis_graphs[i_type][p_type].neighbors(i_term)
+        i_detected = i_term in self.vis_graphs[p_type][i_type].neighbors(p_term)
 
         if p_detected and not i_detected:
             u = -self.util_struct[i_type]['detects'] \
@@ -126,7 +126,7 @@ def construct_two_player_util_mat(G_dict, p_type, util_fun):
 
     U_blocks = []
     G_p = G_dict[p_type]
-    for i_type in enumerate(AgentType):
+    for i_type in AgentType:
         G_i = G_dict[i_type]
         U_i = np.zeros((G_p.number_of_edges(), G_i.number_of_edges()))
         for e_pat in G_p.edges(data=True):
@@ -157,10 +157,9 @@ def construct_star_top_util_mat(G_dict, p_types, util_fun):
     """
 
     U_blocks = []
-    for i, p_type in enumerate(p_types):
+    for p_type in p_types:
         U_blocks.append(construct_two_player_util_mat(G_dict, p_type,
                                                       util_fun))
 
-    U = np.vstack(U_blocks)
 
-    return U
+    return U_blocks

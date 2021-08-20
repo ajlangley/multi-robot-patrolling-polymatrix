@@ -155,7 +155,7 @@ def compute_ne_star_top(U_star, G_dict, p_types, use_movement_constraints=True,
             for v in G.nodes:
                 incoming_edges = G.in_edges(v, data=True)
                 outgoing_edges = G.out_edges(v, data=True)
-                in_eids = [e[[1]]['eid'] for e in incoming_edges]
+                in_eids = [e[-1]['eid'] for e in incoming_edges]
                 out_eids = [e[-1]['eid'] for e in outgoing_edges]
                 in_sum = cp.sum(x_var[in_eids])
                 out_sum = cp.sum(x_var[out_eids])
@@ -165,7 +165,7 @@ def compute_ne_star_top(U_star, G_dict, p_types, use_movement_constraints=True,
             for v in G.nodes:
                 incoming_edges = G.in_edges(v, data=True)
                 outgoing_edges = G.out_edges(v, data=True)
-                in_eids = [e[[1]]['eid'] for e in incoming_edges]
+                in_eids = [e[-1]['eid'] for e in incoming_edges]
                 out_eids = [e[-1]['eid'] for e in outgoing_edges]
                 in_sum = cp.sum(y_var[in_eids])
                 out_sum = cp.sum(y_var[out_eids])

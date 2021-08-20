@@ -148,6 +148,7 @@ def build_graph_with_speed(G, mov_budget):
 def build_vis_graph(G, vis_pairs):
     nodes = list(G.nodes)
     vis_graph = nx.digraph.DiGraph()
+    vis_graph.add_nodes_from(G.nodes)
     for vis_pair in vis_pairs:
         v1 = nodes[vis_pair[0]]
         v2 = nodes[vis_pair[1]]
