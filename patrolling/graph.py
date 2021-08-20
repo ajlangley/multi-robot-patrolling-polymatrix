@@ -154,3 +154,16 @@ def build_vis_graph(G, vis_pairs):
         vis_graph.add_edge(v1, v2)
 
     return vis_graph
+
+def build_vis_score_dict_from_vis_map(G, vis_map, kernel_size):
+    vis_score_dict = dict()
+    for v in G.nodes:
+        x_int, y_int = int(v[0]), int(v[1])
+        left = max(0, x_int - kernel_size)
+        right = min(vis_map.shape[1], x_int + kernel_size)
+        top = max(0, y_int - kernel_size)
+        bottom = min(vis_map.shape[0], y_int + kernel_size)
+        vis_region = vis_map[top:bottom, left:right]
+        vis_score_dict[v] = np.mean(vis_region)
+
+    return vis_score_dict
