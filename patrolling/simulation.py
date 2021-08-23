@@ -94,9 +94,9 @@ def simulate_star_top_patrolling(x_list, y, G_dict, vis_graphs, p_types,
                         i_type = intruder['type']
                         v_p = patroller['history'][-1]
                         v_i = intruder['history'][-1]
-                        if v_p in vis_graphs[i_type].neighbors(v_i):
+                        if v_p in vis_graphs[i_type][p_type].neighbors(v_i):
                             patroller['is_detected'][-1] = True
-                        if v_i in vis_graphs[p_type].neighbors(v_p):
+                        if v_i in vis_graphs[p_type][i_type].neighbors(v_p):
                             intruder['detection_time'] = t
                             intruder['detected_by'] = p_type
 
